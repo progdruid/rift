@@ -1,0 +1,18 @@
+# IDEs
+.idea/
+.vs/
+.claude/
+*.DotSettings.user
+
+# Devtools binaries
+/bechef
+
+# Build outputs
+out/
+*.exe
+*.dll
+*.lib
+*.pdb
+
+# archives in asset folders
+**/assets/**/*.zip

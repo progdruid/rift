@@ -1,0 +1,3 @@
+[submodule "be-engine"]
+	path = be-engine
+	url = git@github.com:progdruid/be-engine.git

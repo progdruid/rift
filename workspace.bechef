@@ -1,0 +1,2 @@
+roots . be-engine
+ignore .tmp_* *.zip *.aseprite out vendor
