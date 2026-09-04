@@ -4,7 +4,7 @@
 #include "standard-game/BeStandardBaseScene.h"
 #include "scenes/BeSceneManager.h"
 
-#include "scenes/RiftScene.h"
+#include "RiftScene.h"
 
 int main() {
     BeStandardGame game({
