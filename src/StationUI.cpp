@@ -117,3 +117,17 @@ auto StationUI::Draw(DeliverySystem& delivery, glm::vec3 shipPosition) -> void {
 
     ImGui::End();
 }
+
+StationOverlay::StationOverlay(
+    DeliverySystem& delivery, 
+    const glm::vec3& shipPosition
+)
+: _delivery(delivery)
+, _shipPosition(shipPosition) {}
+
+auto StationOverlay::Draw() -> bool {
+    if (_delivery.GetDockedStation() < 0) return false;
+    StationUI::Draw(_delivery, _shipPosition);
+    return true;
+}
+

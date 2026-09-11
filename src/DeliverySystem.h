@@ -75,6 +75,7 @@ class DeliverySystem {
     auto NotifyUndocked() -> void;
 
     auto TakeJob(int station, int jobIndex) -> void;
+    auto AssignRandomContract() -> void;
     auto CompleteContract() -> void;
     auto ApplyCrashPenalty() -> void;
     auto SetCredits(int credits) -> void;

@@ -9,6 +9,15 @@
 #include <umbrellas/include-glm.h>
 #include <umbrellas/include-libassert.h>
 
+inline constexpr const char* kControlsHelp =
+    "Mouse    steer\n"
+    "W / S    thrust forward / back\n"
+    "Q / E    descend / ascend\n"
+    "A / D    roll\n"
+    "Shift    boost\n"
+    "Space    flight assist\n"
+    "C        undock";
+
 struct FloatRange {
     float Min;
     float Max;

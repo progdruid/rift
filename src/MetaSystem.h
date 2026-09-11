@@ -3,6 +3,7 @@
 #include <umbrellas/common.hpp>
 
 class DeliverySystem;
+class OverlaySystem;
 
 class MetaSystem {
     expose
@@ -10,18 +11,23 @@ class MetaSystem {
 
     hide
     Phase _phase = Phase::Inactive;
-    Phase _popupOpenedFor = Phase::Inactive;
     float _elapsed = 0.0f;
     bool _wantsClose = false;
-    
-    expose
-    auto Begin() -> void;
-    auto End() -> void;
-    auto Update(float deltaTime, const DeliverySystem& delivery) -> void;
-    auto DrawUI(const DeliverySystem& delivery) -> void;
 
-    [[nodiscard]] auto IsPaused() const -> bool;
+    expose
+    auto Begin(OverlaySystem& overlays) -> void;
+    auto End() -> void;
+    auto Update(
+        float deltaTime,
+        const DeliverySystem& delivery,
+        OverlaySystem& overlays
+    ) -> void;
+    auto DrawHud(const DeliverySystem& delivery) -> void;
+
     [[nodiscard]] auto WantsClose() const -> bool { return _wantsClose; }
     [[nodiscard]] auto GetElapsed() const -> float { return _elapsed; }
     auto SetElapsed(float elapsed) -> void;
+
+    hide
+    auto Announce(OverlaySystem& overlays) -> void;
 };

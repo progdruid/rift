@@ -8,6 +8,7 @@
 #include "DeliverySystem.h"
 #include "standard-game/BeStandardFullScene.h"
 #include "MetaSystem.h"
+#include "OverlaySystem.h"
 
 class ShipCameraController;
 class DeliverySystem;
@@ -25,10 +26,10 @@ class RiftScene : public BeStandardFullScene {
     std::shared_ptr<BeMaterial> _posterizeMaterial;
     std::shared_ptr<BeMaterial> _hudMaterial;
     ImFont* _riftFont = nullptr;
-    bool _stationUiOpen = false;
     bool _dying = false;
     bool _showDebug = false;
     MetaSystem _meta;
+    OverlaySystem _overlays;
 
     expose
     explicit RiftScene(BeStandardGame* game);
@@ -40,7 +41,7 @@ class RiftScene : public BeStandardFullScene {
     hide
     auto EnterPlayMode() -> void;
     auto ExitPlayMode() -> void;
-    auto SetStationUiOpen(bool open) -> void;
+    auto OpenPauseMenu() -> void;
     auto DeathSequence() -> BeCoroutine;
 
     protect

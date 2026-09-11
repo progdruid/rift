@@ -199,6 +199,20 @@ auto DeliverySystem::TakeJob(int station, int jobIndex) -> void {
     _contract = jobs[jobIndex];
 }
 
+auto DeliverySystem::AssignRandomContract() -> void {
+    std::vector<int> withJobs;
+    for (int index = 0; index < static_cast<int>(_stations.size()); ++index) {
+        if (!_stations[index].Jobs.empty()) withJobs.push_back(index);
+    }
+    if (withJobs.empty()) return;
+
+    std::uniform_int_distribution<size_t> pickStation(0, withJobs.size() - 1);
+    const int station = withJobs[pickStation(_rng)];
+    const auto& jobs = _stations[station].Jobs;
+    std::uniform_int_distribution<size_t> pickJob(0, jobs.size() - 1);
+    TakeJob(station, static_cast<int>(pickJob(_rng)));
+}
+
 auto DeliverySystem::CompleteContract() -> void {
     be_assert(CanComplete(), "CompleteContract: not at contract destination");
     _credits += _contract->Reward;

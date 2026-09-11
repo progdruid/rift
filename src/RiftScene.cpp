@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <random>
 #include <string>
 
@@ -15,6 +16,7 @@
 #include "DeliverySystem.h"
 #include "MetaSystem.h"
 #include "StationUI.h"
+#include "PauseOverlay.h"
 #include "RiftSettings.h"
 #include "RiftTerrain.h"
 #include "BeCamera.h"
@@ -54,11 +56,14 @@ void RiftScene::Prepare() {
 auto RiftScene::EnterPlayMode() -> void {
     _delivery = std::make_unique<DeliverySystem>(_registry, _assetRegistry, *_terrain);
     _delivery->GenerateStations();
-    _meta.Begin();
+    _delivery->AssignRandomContract();
+    _meta.Begin(_overlays);
 }
 
-auto RiftScene::SetStationUiOpen(bool open) -> void {
-    _stationUiOpen = open;
+auto RiftScene::OpenPauseMenu() -> void {
+    _overlays.Push(std::make_unique<PauseOverlay>(
+        [this] { _game->Window->RequestClose(); }
+    ));
 }
 
 auto RiftScene::ExitPlayMode() -> void {
@@ -67,7 +72,7 @@ auto RiftScene::ExitPlayMode() -> void {
     const auto docks = _registry.view<DockComponent>();
     _registry.destroy(docks.begin(), docks.end());
     _shipCameraController->Uncapture();
-    SetStationUiOpen(false);
+    _overlays.Clear();
     _delivery.reset();
     _meta.End();
     _hudMaterial->SetFloat1("TargetState", 0.0f);
@@ -243,9 +248,9 @@ auto RiftScene::DefinePasses() -> void {
         ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(1.0f, 1.0f, 1.0f, 0.12f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.22f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1.0f, 1.0f, 1.0f, 0.35f));
-        if (_delivery) _meta.DrawUI(*_delivery);
+        if (_delivery) _meta.DrawHud(*_delivery);
         if (_showDebug) _shipCameraController->DrawDebugUI();
-        if (_stationUiOpen && _delivery) StationUI::Draw(*_delivery, _camera->Position);
+        _overlays.Draw();
         ImGui::PopStyleColor(4);
         ImGui::PopFont();
     });
@@ -258,9 +263,7 @@ auto RiftScene::DefinePasses() -> void {
 
 void RiftScene::Tick(float deltaTime) {
     if (_game->Input->GetKeyDown(GLFW_KEY_ESCAPE)) {
-        _game->Input->SetMouseCapture(false);
-        _game->Window->RequestClose();
-        return;
+        OpenPauseMenu();
     }
     
 
@@ -285,19 +288,20 @@ void RiftScene::Tick(float deltaTime) {
         if (_game->Input->GetKeyDown(GLFW_KEY_RIGHT_BRACKET)) _meta.SetElapsed(_meta.GetElapsed() + 30.0f);
     }
 
-    if (_delivery) {
-        _meta.Update(deltaTime, *_delivery);
+    const bool frozen = _overlays.FreezesSim();
+
+    if (_delivery && !frozen) {
+        _meta.Update(deltaTime, *_delivery, _overlays);
         if (_meta.WantsClose()) {
             _game->Window->RequestClose();
             return;
         }
     }
 
-    const bool uiOpen = _meta.IsPaused() || _stationUiOpen;
-    _shipCameraController->SetControlsEnabled(!uiOpen && !_dying);
-    _game->Input->SetMouseCapture(!uiOpen);
+    _shipCameraController->SetControlsEnabled(!_overlays.BlocksControls() && !_dying);
+    _game->Input->SetMouseCapture(!_overlays.ReleasesCursor());
 
-    _shipCameraController->Update(deltaTime, _game->Input.get());
+    _shipCameraController->Update(frozen ? 0.0f : deltaTime, _game->Input.get());
     _hudMaterial->SetFloat2("AimOffset", _shipCameraController->GetAim());
 
     const glm::vec3 worldUp = { 0.0f, 1.0f, 0.0f };
@@ -320,13 +324,13 @@ void RiftScene::Tick(float deltaTime) {
         if (_shipCameraController->HasJustEnteredDock()) {
             _shipCameraController->Capture(dock.Anchor);
             _delivery->NotifyDocked(dock);
-            SetStationUiOpen(true);
+            _overlays.Push(std::make_unique<StationOverlay>(*_delivery, _camera->Position));
         }
 
         if (_game->Input->GetKeyDown(GLFW_KEY_C)) {
             _shipCameraController->Uncapture();
             _delivery->NotifyUndocked();
-            SetStationUiOpen(false);
+            _overlays.Close("station");
         }
     }
 
