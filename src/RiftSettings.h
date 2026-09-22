@@ -119,6 +119,9 @@ struct RiftSettings {
         float MouseSensitivity = 1.0f;
         float AimRadius = 150.0f;
         float AimDeadZone = 0.06f;
+        float WingTickFadeStartPitch = 78.0f;
+        float WingTickFadeEndPitch = 88.0f;
+        float WingTickSlide = 24.0f;
         float MouseReturn = 0.0f;
         float RotationResponse = 6.0f;
         float RollAccel = 2.0f;

@@ -22,6 +22,8 @@
     TargetArrowSize: float = 4.0
     TargetAlpha: float = 1.0
     HorizonDir: float2 = (1.0, 0.0)
+    WingTickAlpha: float = 1.0
+    WingTickOffset: float = 0.0
 }
 
 @be-shader ship-hud {
@@ -66,6 +68,8 @@ struct ship_hud_material {
     float TargetArrowSize;
     float TargetAlpha;
     float2 HorizonDir;
+    float WingTickAlpha;
+    float WingTickOffset;
 };
 
 cbuffer CBuffer_0 : register(b0, space0) {
@@ -110,17 +114,19 @@ PixelOutput PS(FullscreenVSOutput input) {
     bool vArm = abs(ad.x - bd) <= hw && ad.y <= bd + hw && ad.y >= bd - arm;
     if (hArm || vArm) hit = 1.0;
 
-    // horizon-aligned wing ticks (bar stays parallel to the world horizon)
-    float aimR = _Main.AimRadius / ps;
+    // horizon-aligned wing ticks (bar stays parallel to the world horizon), faded and slid near vertical
+    // offset snapped to whole cells so the ticks keep their shape while moving
+    float aimR = _Main.AimRadius / ps + round(_Main.WingTickOffset / ps);
     float2 barDir = _Main.HorizonDir;
     float2 barPerp = float2(-barDir.y, barDir.x);
     float barAlong = dot(d, barDir);
     float barAcross = dot(d, barPerp);
-    if (abs(abs(barAlong) - aimR) <= _Main.TickLength && abs(barAcross) <= hw + 0.5) hit = 1.0;
+    float wingAlpha = _Main.WingTickAlpha;
+    if (abs(abs(barAlong) - aimR) <= _Main.TickLength && abs(barAcross) <= hw + 0.5) hit = max(hit, wingAlpha);
 
     // ground indicator: drop from each tick's inner corner toward the ground (+barPerp)
     float innerEnd = aimR - _Main.TickLength + 0.5;
-    if (abs(abs(barAlong) - innerEnd) <= 0.5 && barAcross >= 0.5 && barAcross <= _Main.GroundTickLength + 0.5) hit = 1.0;
+    if (abs(abs(barAlong) - innerEnd) <= 0.5 && barAcross >= 0.5 && barAcross <= _Main.GroundTickLength + 0.5) hit = max(hit, wingAlpha);
 
     // aim marker: solid box, snapped to the cell grid
     float2 aimD = floor(aimPos / ps) - c0;

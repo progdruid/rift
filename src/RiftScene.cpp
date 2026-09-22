@@ -311,6 +311,13 @@ void RiftScene::Tick(float deltaTime) {
     horizonDir = horizonLen > 1e-3f ? horizonDir / horizonLen : glm::vec2(1.0f, 0.0f);
     _hudMaterial->SetFloat2("HorizonDir", { horizonDir.x, -horizonDir.y });
 
+    // wing ticks fade out near vertical, sliding inward when looking down and outward when looking up
+    const auto& ship = RiftStore::Get().Ship;
+    const float pitch = glm::degrees(std::asin(glm::clamp(_camera->GetFront().y, -1.0f, 1.0f)));
+    const float wingFade = glm::smoothstep(ship.WingTickFadeStartPitch, ship.WingTickFadeEndPitch, std::abs(pitch));
+    _hudMaterial->SetFloat1("WingTickAlpha", 1.0f - wingFade);
+    _hudMaterial->SetFloat1("WingTickOffset", (pitch >= 0.0f ? 1.0f : -1.0f) * wingFade * ship.WingTickSlide);
+
     if (_delivery && !_dying) {
         if (_shipCameraController->GetLastImpactSpeed() > RiftStore::Get().Ship.CrashImpactSpeed) {
             _coroutineScheduler.Start(DeathSequence());
