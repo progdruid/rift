@@ -13,6 +13,7 @@
 ShipCameraController::ShipCameraController(BeCamera* camera, const RiftTerrain* terrain)
     : _camera(camera)
     , _terrain(terrain)
+    , _oxygen(1.0f)
 {}
 
 auto ShipCameraController::Update(float deltaTime, BeInput* input) -> void {
@@ -48,6 +49,15 @@ auto ShipCameraController::Update(float deltaTime, BeInput* input) -> void {
     _angularVelocity.z += (targetOmega.z - _angularVelocity.z) * rollAlpha;
     _camera->RotateLocal(_angularVelocity.x * dt, _angularVelocity.y * dt, _angularVelocity.z * dt);
 
+    const float groundHeight = _terrain ? _terrain->GetHeight(_camera->Position.x, _camera->Position.z) : 0.0f;
+    const float altitude = _camera->Position.y - groundHeight;
+
+    const bool breathable = altitude < ship.OxygenLossAltitude || _isInOxygenZone;
+    const float oxygenSpeed = _isCaptured ? ship.OxygenDockedRecoverSpeed
+                            : breathable  ? ship.OxygenRecoverSpeed
+                            : -ship.OxygenLossSpeed;
+    _oxygen = glm::clamp(_oxygen + oxygenSpeed * dt, 0.0f, 1.0f);
+
     if (_isCaptured) {
         const float omega = ship.DockSpringFrequency;
         const float k = omega * omega;
@@ -75,8 +85,6 @@ auto ShipCameraController::Update(float deltaTime, BeInput* input) -> void {
 
         if (_controlsEnabled && input->GetKeyDown(GLFW_KEY_SPACE)) ship.FlightAssist = !ship.FlightAssist;
 
-        const float groundHeight = _terrain ? _terrain->GetHeight(_camera->Position.x, _camera->Position.z) : 0.0f;
-        const float altitude = _camera->Position.y - groundHeight;
         const float targetProximity = 1.0f - glm::smoothstep(ship.GroundEffectLowAltitude, ship.GroundEffectHighAltitude, altitude);
         _groundEffectProximity += (targetProximity - _groundEffectProximity) * (1.0f - std::exp(-ship.GroundEffectResponse * dt));
         const float proximity = _groundEffectProximity;
@@ -107,6 +115,8 @@ auto ShipCameraController::Update(float deltaTime, BeInput* input) -> void {
             _velocity -= _velocity * (1.0f - std::exp(-ship.GroundFriction * dt));
         }
     }
+    
+    
 
     _camera->Update();
 }
@@ -117,6 +127,7 @@ auto ShipCameraController::Respawn(glm::vec3 position) -> void {
     _angularVelocity = glm::vec3(0.0f);
     _aim = glm::vec2(0.0f);
     _lastImpactSpeed = 0.0f;
+    _oxygen = 1.0f;
     _camera->Update();
 }
 

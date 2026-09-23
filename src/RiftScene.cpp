@@ -72,6 +72,7 @@ auto RiftScene::ExitPlayMode() -> void {
     const auto docks = _registry.view<DockComponent>();
     _registry.destroy(docks.begin(), docks.end());
     _shipCameraController->Uncapture();
+    _shipCameraController->SetInOxygenZone(false);
     _overlays.Clear();
     _delivery.reset();
     _meta.End();
@@ -317,9 +318,23 @@ void RiftScene::Tick(float deltaTime) {
     const float wingFade = glm::smoothstep(ship.WingTickFadeStartPitch, ship.WingTickFadeEndPitch, std::abs(pitch));
     _hudMaterial->SetFloat1("WingTickAlpha", 1.0f - wingFade);
     _hudMaterial->SetFloat1("WingTickOffset", (pitch >= 0.0f ? 1.0f : -1.0f) * wingFade * ship.WingTickSlide);
+    // oxygen bar fades in once the tank starts draining, fades out after it refills
+    const float oxygen = _shipCameraController->GetOxygen();
+    const float oxygenBarTarget = ship.OxygenBarEnabled && oxygen < 1.0f ? 1.0f : 0.0f;
+    const float oxygenBarStep = deltaTime / glm::max(ship.OxygenBarFadeTime, 1e-4f);
+    _oxygenBarAlpha += glm::clamp(oxygenBarTarget - _oxygenBarAlpha, -oxygenBarStep, oxygenBarStep);
+    _hudMaterial->SetFloat1("OxygenLevel", oxygen);
+    _hudMaterial->SetFloat1("OxygenBarAlpha", _oxygenBarAlpha);
+
+    // vignette closes in as the tank runs low; at empty the radius is -softness so even the center is fully covered
+    const float suffocation = 1.0f - glm::clamp(oxygen / glm::max(ship.OxygenVignetteStart, 1e-4f), 0.0f, 1.0f);
+    _posterizeMaterial->SetFloat1("VignetteRadius", glm::mix(ship.OxygenVignetteMaxRadius, -ship.OxygenVignetteSoftness, suffocation));
+    _posterizeMaterial->SetFloat1("VignetteSoftness", ship.OxygenVignetteSoftness);
+    _posterizeMaterial->SetFloat3("VignetteColor", ship.OxygenVignetteColor);
 
     if (_delivery && !_dying) {
-        if (_shipCameraController->GetLastImpactSpeed() > RiftStore::Get().Ship.CrashImpactSpeed) {
+        if (_shipCameraController->GetLastImpactSpeed() > RiftStore::Get().Ship.CrashImpactSpeed || 
+            !_shipCameraController->HasOxygen()) {
             _coroutineScheduler.Start(DeathSequence());
         }
     }
@@ -327,6 +342,7 @@ void RiftScene::Tick(float deltaTime) {
     if (_delivery && !_dying) {
         const auto dock = _delivery->CheckDock(_camera->Position);
         _shipCameraController->SetInDock(dock.Hit);
+        _shipCameraController->SetInOxygenZone(_delivery->IsInOxygenZone(_camera->Position));
 
         if (_shipCameraController->HasJustEnteredDock()) {
             _shipCameraController->Capture(dock.Anchor);

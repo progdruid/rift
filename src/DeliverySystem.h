@@ -42,6 +42,7 @@ class DeliverySystem {
         glm::vec3 Aim;
         entt::entity Entity;
         float DockRadius = 0.f;
+        float OxygenRadius = 0.f;
         std::string Name;
         std::vector<glm::vec3> Docks;
         std::vector<Job> Jobs;
@@ -71,6 +72,7 @@ class DeliverySystem {
 
     auto GenerateStations() -> void;
     auto CheckDock(glm::vec3 shipPos) const -> DockHit;
+    [[nodiscard]] auto IsInOxygenZone(glm::vec3 shipPos) const -> bool;
     auto NotifyDocked(const DockHit& hit) -> void;
     auto NotifyUndocked() -> void;
 

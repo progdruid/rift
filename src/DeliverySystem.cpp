@@ -75,7 +75,7 @@ auto DeliverySystem::GenerateStations() -> void {
             ,RenderComponent { .Prop = prop, .CastShadows = false }
             ,StationComponent { .Index = index }
         );
-        _stations.push_back({ .Position = position, .Aim = pivot + kind.AimPoint * kind.Scale, .Entity = entity, .DockRadius = kind.DockRadius });
+        _stations.push_back({ .Position = position, .Aim = pivot + kind.AimPoint * kind.Scale, .Entity = entity, .DockRadius = kind.DockRadius, .OxygenRadius = kind.OxygenRadius });
         auto& station = _stations.back();
 
         auto dockProp = _assets.GetProp("dock-ring").lock();
@@ -164,6 +164,15 @@ auto DeliverySystem::CheckDock(glm::vec3 shipPos) const -> DockHit {
         }
     }
     return {};
+}
+
+auto DeliverySystem::IsInOxygenZone(glm::vec3 shipPos) const -> bool {
+    for (const auto& station : _stations) {
+        for (const auto& dock : station.Docks) {
+            if (glm::length(dock - shipPos) <= station.OxygenRadius) return true;
+        }
+    }
+    return false;
 }
 
 auto DeliverySystem::GetTargetPosition(glm::vec3 shipPos) const -> glm::vec3 {

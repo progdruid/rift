@@ -27,6 +27,7 @@ class RiftScene : public BeStandardFullScene {
     std::shared_ptr<BeMaterial> _hudMaterial;
     ImFont* _riftFont = nullptr;
     bool _dying = false;
+    float _oxygenBarAlpha = 0.0f;
     bool _showDebug = false;
     MetaSystem _meta;
     OverlaySystem _overlays;

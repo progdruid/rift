@@ -8,24 +8,6 @@ class BeInput;
 class RiftTerrain;
 
 class ShipCameraController {
-    expose
-    explicit ShipCameraController(BeCamera* camera, const RiftTerrain* terrain);
-
-    auto Update(float deltaTime, BeInput* input) -> void;
-    auto DrawDebugUI() -> void;
-    auto Respawn(glm::vec3 position) -> void;
-    [[nodiscard]] auto GetAim() const -> glm::vec2 { return _aim; }
-    [[nodiscard]] auto GetLastImpactSpeed() const -> float { return _lastImpactSpeed; }
-
-    auto SetInDock(bool inDock) -> void { _wasInDockLast = _isInDock; _isInDock = inDock; }
-    [[nodiscard]] auto HasJustEnteredDock() const -> bool { return _isInDock && !_wasInDockLast; }
-
-    auto Capture(glm::vec3 anchor) -> void { _isCaptured = true; _anchor = anchor; }
-    auto Uncapture() -> void { _isCaptured = false; }
-    [[nodiscard]] auto IsCaptured() const -> bool { return _isCaptured; }
-
-    auto SetControlsEnabled(bool enabled) -> void { _controlsEnabled = enabled; }
-
     hide
     BeCamera* _camera;
     const RiftTerrain* _terrain;
@@ -39,4 +21,28 @@ class ShipCameraController {
     bool _isCaptured{false};
     bool _controlsEnabled{true};
     glm::vec3 _anchor{0.0f};
+    float _oxygen;
+    bool _isInOxygenZone{false};
+
+    expose
+    explicit ShipCameraController(BeCamera* camera, const RiftTerrain* terrain);
+
+    auto Update(float deltaTime, BeInput* input) -> void;
+    auto DrawDebugUI() -> void;
+    auto Respawn(glm::vec3 position) -> void;
+    auto GetAim() const -> glm::vec2 { return _aim; }
+    auto GetLastImpactSpeed() const -> float { return _lastImpactSpeed; }
+
+    auto SetInDock(bool inDock) -> void { _wasInDockLast = _isInDock; _isInDock = inDock; }
+    auto HasJustEnteredDock() const -> bool { return _isInDock && !_wasInDockLast; }
+
+    auto Capture(glm::vec3 anchor) -> void { _isCaptured = true; _anchor = anchor; }
+    auto Uncapture() -> void { _isCaptured = false; }
+    auto IsCaptured() const -> bool { return _isCaptured; }
+
+    auto SetControlsEnabled(bool enabled) -> void { _controlsEnabled = enabled; }
+    
+    auto HasOxygen() const -> bool { return _oxygen > 0.01f; }
+    auto GetOxygen() const -> float { return _oxygen; }
+    auto SetInOxygenZone(bool inZone) -> void { _isInOxygenZone = inZone; }
 };

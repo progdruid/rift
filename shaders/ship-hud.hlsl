@@ -24,6 +24,11 @@
     HorizonDir: float2 = (1.0, 0.0)
     WingTickAlpha: float = 1.0
     WingTickOffset: float = 0.0
+    OxygenLevel: float = 1.0
+    OxygenBarInset: float = 4.0
+    OxygenBarHalfThickness: float = 1.0
+    OxygenBarHalfLength: float = 30.0
+    OxygenBarAlpha: float = 0.0
 }
 
 @be-shader ship-hud {
@@ -70,6 +75,11 @@ struct ship_hud_material {
     float2 HorizonDir;
     float WingTickAlpha;
     float WingTickOffset;
+    float OxygenLevel;
+    float OxygenBarInset;
+    float OxygenBarHalfThickness;
+    float OxygenBarHalfLength;
+    float OxygenBarAlpha;
 };
 
 cbuffer CBuffer_0 : register(b0, space0) {
@@ -141,6 +151,15 @@ PixelOutput PS(FullscreenVSOutput input) {
     bool inRange = along > bd + hw + 1.0 && along < lenA - (_Main.AimBoxHalf + 1.0);
     bool dashOn = fmod(floor(along / _Main.DashPeriod), 2.0) < 0.5;
     if (length(d - closest) <= hw + 0.5 && inRange && dashOn) hit = 1.0;
+
+    // oxygen bar: horizontal, just below the wing-tick circle, shrinks toward its middle; end caps mark the full extent
+    float oxRow = round(_Main.AimRadius / ps) + _Main.OxygenBarInset;
+    float oxY = abs(d.y - oxRow);
+    float oxHalf = _Main.OxygenBarHalfLength;
+    float oxFill = floor(saturate(_Main.OxygenLevel) * oxHalf + 0.5);
+    float oxAlpha = _Main.OxygenBarAlpha;
+    if (oxY <= _Main.OxygenBarHalfThickness && ad.x <= oxFill && oxFill > 0.0) hit = max(hit, oxAlpha);
+    if (oxY <= _Main.OxygenBarHalfThickness + 1.0 && abs(ad.x - (oxHalf + 2.0)) <= hw) hit = max(hit, oxAlpha);
 
     // delivery target marker: diamond when on-screen, edge chevron when off-screen
     float state = _Main.TargetState;

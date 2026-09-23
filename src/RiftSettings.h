@@ -42,6 +42,7 @@ struct StationKind {
     FloatRange RotationZ { 0.0f, glm::two_pi<float>() };
     float DockRadius { 5.0f };
     std::vector<glm::vec3> DockPositions {};
+    float OxygenRadius { 0.0f };
 };
 
 struct Commodity {
@@ -142,6 +143,17 @@ struct RiftSettings {
         float GroundEffectSpeedHigh = 0.7f;
         float GroundEffectDragHigh = 1.0f;
         float GroundEffectResponse = 2.0f;
+        
+        float OxygenLossAltitude = 50.f;
+        float OxygenLossSpeed = 0.15f;
+        float OxygenRecoverSpeed = 0.10f;
+        float OxygenDockedRecoverSpeed = 0.4f;
+        bool OxygenBarEnabled = false;
+        float OxygenBarFadeTime = 0.4f;
+        float OxygenVignetteStart = 1.0f;       // oxygen level where the vignette begins closing in
+        float OxygenVignetteMaxRadius = 1.2f;   // radius at OxygenVignetteStart (off-screen), in screen half-widths
+        float OxygenVignetteSoftness = 0.5f;
+        glm::vec3 OxygenVignetteColor = HexColor("#1F2C47");
 
         float CollisionRadius = 1.7f;
         float GroundFriction = 3.0f;
@@ -203,6 +215,7 @@ struct RiftSettings {
                     glm::vec3(0.43f, 0.8f,  0.86f),
                     glm::vec3(0.43f, 0.8f, -0.06f),
                 },
+                .OxygenRadius = 80.0f,
             },
             //{
             //    .Prop = "mining-station",
@@ -227,6 +240,7 @@ struct RiftSettings {
                     glm::vec3(-0.22f, -0.905f, -0.514f),
                     glm::vec3( 0.0f ,  0.0f  , -1.45f )
                 },
+                .OxygenRadius = 80.0f,
             },
             //{
             //    .Prop = "power_station",

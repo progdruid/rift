@@ -12,6 +12,9 @@
     FogColor: float3 = #334D80
     Enabled: float = 1.0
     Fade: float = 0.0
+    VignetteRadius: float = 2.0
+    VignetteSoftness: float = 0.4
+    VignetteColor: float3 = #1F2C47
     PaletteCount: float = 7.0
     Palette: float3[8] = [#2E4372, #E89128, #F7F052, #D34E24, #8C3318, #1F2C47, #5D3B45]
 }
@@ -45,6 +48,9 @@ struct posterize_material {
     float3 FogColor;
     float Enabled;
     float Fade;
+    float VignetteRadius;
+    float VignetteSoftness;
+    float3 VignetteColor;
     float PaletteCount;
     float3 Palette[8];
 };
@@ -139,6 +145,12 @@ PixelOutput PS(FullscreenVSOutput input) {
     float dithered = saturate(0.5 + (t - 0.5) / max(strength, 1e-4));
 
     float3 sceneOut = (threshold < dithered) ? second : best;
+
+    // dithered vignette: per-block coverage ramps from 0 at VignetteRadius to 1 at VignetteRadius + VignetteSoftness
+    // radius measured in half-widths (screen side edge = 1.0), so the shape stays circular
+    float2 vp = (snappedUV - 0.5) * 2.0 * float2(1.0, float(h) / float(w));
+    float vignette = saturate((length(vp) - _Main.VignetteRadius) / max(_Main.VignetteSoftness, 1e-4));
+    if (threshold < vignette) sceneOut = _Main.VignetteColor;
 
     float4 ui = UITexture.SampleLevel(PointSampler, input.UV, 0);
     PixelOutput output;
