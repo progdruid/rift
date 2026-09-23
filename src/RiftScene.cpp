@@ -6,9 +6,9 @@
 #include <random>
 #include <string>
 
-#include <umbrellas/include-glfw.h>
-#include <umbrellas/include-glm.h>
-#include <umbrellas/include-libassert.h>
+#include <include-glfw.h>
+#include <include-glm.h>
+#include <include-libassert.h>
 
 #include "BeMesh.h"
 
@@ -128,7 +128,7 @@ auto RiftScene::DefineAssets() -> void {
     auto heightMap = BeTexture::Create("rift-heightmap")
         .SetSize(resolution, resolution)
         .SetFormat(SenFormat::R32_Float)
-        .SetUsage(SenTextureUsage::ShaderResource)
+        .SetUsage(SenTextureUsage::Sampled)
         .FillFromMemory(reinterpret_cast<const uint8_t*>(packedHeights.data()))
         .Build();
 
@@ -216,7 +216,8 @@ auto RiftScene::DefinePasses() -> void {
     _machine->AddLightingPass("Rift_HDR");
 
     const auto& posterize = RiftStore::Get().Posterize;
-    const auto& posterizeScheme = BeShaderLibrary::GetShader("posterize")->GetMaterialScheme("main");
+    const auto& posterizeShader = *BeShaderLibrary::GetShader("posterize");
+    const auto& posterizeScheme = BeShaderLibrary::GetShaderScheme(posterizeShader, "main");
     _posterizeMaterial = BeMaterial::Create(posterizeScheme);
     _posterizeMaterial->SetTexture("ColorTexture", _machine->GetRenderTexture("Rift_HDR"));
     _posterizeMaterial->SetTexture("DepthTexture", _machine->GetRenderTexture("Rift_Depth"));
@@ -232,7 +233,8 @@ auto RiftScene::DefinePasses() -> void {
 
     const uint32_t screenWidth  = _game->Renderer->GetSwapchainPixelWidth();
     const uint32_t screenHeight = _game->Renderer->GetSwapchainPixelHeight();
-    const auto& hudScheme = BeShaderLibrary::GetShader("ship-hud")->GetMaterialScheme("main");
+    const auto& hudShader = *BeShaderLibrary::GetShader("ship-hud");
+    const auto& hudScheme = BeShaderLibrary::GetShaderScheme(hudShader, "main");
     _hudMaterial = BeMaterial::Create(hudScheme);
     _hudMaterial->SetFloat2("ScreenSize", { static_cast<float>(screenWidth), static_cast<float>(screenHeight) });
     _hudMaterial->SetFloat1("PixelSize", posterize.PixelSize);

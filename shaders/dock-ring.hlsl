@@ -30,6 +30,7 @@
 
 /*========================================================*/
 // region @be-auto-boilerplate
+#include "core/be-bindless-tables.hlsl"
 #include "core/uniform-material.hlsl"
 #include "core/objectMaterial.hlsl"
 
@@ -39,17 +40,16 @@ struct dock_ring_material {
     float Thickness;
 };
 
-cbuffer CBuffer_0 : register(b0, space0) {
-    uniform_material _Frame;
+struct DrawRoot {
+    uniform_material* Frame;
+    object_material_for_geometry_pass* GeometryObject;
+    dock_ring_material* GeometryMain;
 };
+[[vk::push_constant]] DrawRoot Root;
 
-cbuffer CBuffer_1 : register(b0, space1) {
-    object_material_for_geometry_pass _GeometryObject;
-};
-
-cbuffer CBuffer_2 : register(b0, space2) {
-    dock_ring_material _GeometryMain;
-};
+property uniform_material* _Frame { get { return Root.Frame; } }
+property object_material_for_geometry_pass* _GeometryObject { get { return Root.GeometryObject; } }
+property dock_ring_material* _GeometryMain { get { return Root.GeometryMain; } }
 
 struct VertexInput {
     float3 Position : POSITION;

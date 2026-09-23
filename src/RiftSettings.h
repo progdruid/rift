@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include <umbrellas/common.hpp>
-#include <umbrellas/include-glm.h>
-#include <umbrellas/include-libassert.h>
+#include <common.hpp>
+#include <include-glm.h>
+#include <include-libassert.h>
 
 inline constexpr const char* kControlsHelp =
     "Mouse    steer\n"
@@ -140,7 +140,7 @@ struct RiftSettings {
         float GroundEffectHighAltitude = 40.0f;
         float GroundEffectSpeedLow = 1.0f;
         float GroundEffectDragLow = 1.0f;
-        float GroundEffectSpeedHigh = 0.7f;
+        float GroundEffectSpeedHigh = 0.6f;
         float GroundEffectDragHigh = 1.0f;
         float GroundEffectResponse = 2.0f;
         

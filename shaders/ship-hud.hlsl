@@ -50,6 +50,7 @@
 
 /*========================================================*/
 // region @be-auto-boilerplate
+#include "core/be-bindless-tables.hlsl"
 #include "core/uniform-material.hlsl"
 
 struct ship_hud_material {
@@ -82,13 +83,14 @@ struct ship_hud_material {
     float OxygenBarAlpha;
 };
 
-cbuffer CBuffer_0 : register(b0, space0) {
-    uniform_material _Frame;
+struct DrawRoot {
+    uniform_material* Frame;
+    ship_hud_material* Main;
 };
+[[vk::push_constant]] DrawRoot Root;
 
-cbuffer CBuffer_1 : register(b0, space1) {
-    ship_hud_material _Main;
-};
+property uniform_material* _Frame { get { return Root.Frame; } }
+property ship_hud_material* _Main { get { return Root.Main; } }
 
 struct PixelOutput {
     float4 HudOutput : SV_Target0;

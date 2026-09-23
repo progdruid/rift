@@ -1,10 +1,8 @@
 #pragma once
 
-#include <memory>
 #include <vector>
-
-#include <umbrellas/include-glm.h>
-#include <umbrellas/common.hpp>
+#include <common.hpp>
+#include <include-glm.h>
 
 class BeMesh;
 

@@ -33,6 +33,7 @@
 
 /*========================================================*/
 // region @be-auto-boilerplate
+#include "core/be-bindless-tables.hlsl"
 #include "core/uniform-material.hlsl"
 #include "core/objectMaterial.hlsl"
 
@@ -45,19 +46,20 @@ struct rift_terrain_material {
     float HeightScale;
 };
 
-cbuffer CBuffer_0 : register(b0, space0) {
-    uniform_material _Frame;
+struct DrawRoot {
+    uniform_material* Frame;
+    object_material_for_geometry_pass* GeometryObject;
+    rift_terrain_material* GeometryMain;
+    uint HeightMap;
+    uint HeightSampler;
 };
+[[vk::push_constant]] DrawRoot Root;
 
-cbuffer CBuffer_1 : register(b0, space1) {
-    object_material_for_geometry_pass _GeometryObject;
-};
-
-cbuffer CBuffer_2 : register(b0, space2) {
-    rift_terrain_material _Terrain;
-};
-SamplerState HeightSampler : register(s1, space2);
-Texture2D HeightMap : register(t2, space2);
+property uniform_material* _Frame { get { return Root.Frame; } }
+property object_material_for_geometry_pass* _GeometryObject { get { return Root.GeometryObject; } }
+property rift_terrain_material* _Terrain { get { return Root.GeometryMain; } }
+property Texture2D HeightMap { get { return Tex2DTable[Root.HeightMap]; } }
+property SamplerState HeightSampler { get { return SamplerTable[Root.HeightSampler]; } }
 
 struct VertexInput {
     float3 Position : POSITION;

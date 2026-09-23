@@ -1,6 +1,6 @@
 #pragma once
 
-#include <umbrellas/common.hpp>
+#include <common.hpp>
 
 class DeliverySystem;
 class OverlaySystem;

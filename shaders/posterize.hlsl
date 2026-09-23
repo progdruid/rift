@@ -16,7 +16,7 @@
     VignetteSoftness: float = 0.4
     VignetteColor: float3 = #1F2C47
     PaletteCount: float = 7.0
-    Palette: float3[8] = [#2E4372, #E89128, #F7F052, #D34E24, #8C3318, #1F2C47, #5D3B45]
+    Palette: float3[8] = []
 }
 
 @be-shader posterize {
@@ -38,6 +38,7 @@
 
 /*========================================================*/
 // region @be-auto-boilerplate
+#include "core/be-bindless-tables.hlsl"
 #include "core/uniform-material.hlsl"
 
 struct posterize_material {
@@ -55,17 +56,22 @@ struct posterize_material {
     float3 Palette[8];
 };
 
-cbuffer CBuffer_0 : register(b0, space0) {
-    uniform_material _Frame;
+struct DrawRoot {
+    uniform_material* Frame;
+    posterize_material* Main;
+    uint ColorTexture;
+    uint DepthTexture;
+    uint UITexture;
+    uint PointSampler;
 };
+[[vk::push_constant]] DrawRoot Root;
 
-cbuffer CBuffer_1 : register(b0, space1) {
-    posterize_material _Main;
-};
-SamplerState PointSampler : register(s1, space1);
-Texture2D ColorTexture : register(t2, space1);
-Texture2D DepthTexture : register(t3, space1);
-Texture2D UITexture : register(t4, space1);
+property uniform_material* _Frame { get { return Root.Frame; } }
+property posterize_material* _Main { get { return Root.Main; } }
+property Texture2D ColorTexture { get { return Tex2DTable[Root.ColorTexture]; } }
+property Texture2D DepthTexture { get { return Tex2DTable[Root.DepthTexture]; } }
+property Texture2D UITexture { get { return Tex2DTable[Root.UITexture]; } }
+property SamplerState PointSampler { get { return SamplerTable[Root.PointSampler]; } }
 
 struct PixelOutput {
     float3 PosterizeOutput : SV_Target0;

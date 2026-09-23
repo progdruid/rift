@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 
-#include <umbrellas/common.hpp>
-#include <umbrellas/include-glm.h>
+#include <common.hpp>
+#include <include-glm.h>
 
 #include "entt/entt.hpp"
 
