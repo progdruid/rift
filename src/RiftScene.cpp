@@ -348,7 +348,7 @@ void RiftScene::Tick(float deltaTime) {
         static_cast<float>(_game->Renderer->GetSwapchainPixelWidth()),
         static_cast<float>(_game->Renderer->GetSwapchainPixelHeight())
     };
-    _hud->Update(*_camera, _shipCameraController->GetAim(), screenSize, _delivery.get());
+    _hud->Update(deltaTime, *_camera, _shipCameraController->GetAim(), screenSize, _delivery.get());
 
     const float tileSize = RiftStore::Get().Terrain.GetRenderTileWorldSize();
     const int centerX = static_cast<int>(std::round(_camera->Position.x / tileSize));

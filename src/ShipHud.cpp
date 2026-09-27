@@ -15,10 +15,12 @@ ShipHud::ShipHud() {
     _material = BeMaterial::Create(BeShaderLibrary::GetShaderScheme(shader, "main"));
     _material->SetFloat1("PixelSize", settings.Posterize.PixelSize);
     _material->SetFloat1("AimRadius", settings.Ship.AimRadius);
+    _stableBlend = settings.Ship.FlightAssist ? 1.0f : 0.0f;
 }
 
-auto ShipHud::Update(const BeCamera& camera, glm::vec2 aim, glm::vec2 screenSize, const DeliverySystem* delivery) -> void {
+auto ShipHud::Update(float deltaTime, const BeCamera& camera, glm::vec2 aim, glm::vec2 screenSize, const DeliverySystem* delivery) -> void {
     const auto& hud = RiftStore::Get().Hud;
+    const auto& ship = RiftStore::Get().Ship;
     const auto& marker = hud.Marker;
 
     // style
@@ -26,8 +28,6 @@ auto ShipHud::Update(const BeCamera& camera, glm::vec2 aim, glm::vec2 screenSize
     _material->SetFloat3("Color", hud.Color);
     _material->SetFloat1("LineHalf", hud.LineHalf);
     _material->SetFloat1("PipHalf", hud.PipHalf);
-    _material->SetFloat1("BracketOffset", hud.BracketOffset);
-    _material->SetFloat1("BracketArm", hud.BracketArm);
     _material->SetFloat1("AimBoxHalf", hud.AimBoxHalf);
     _material->SetFloat1("DashPeriod", hud.DashPeriod);
     _material->SetFloat1("WingTickLength", hud.WingTickLength);
@@ -38,6 +38,15 @@ auto ShipHud::Update(const BeCamera& camera, glm::vec2 aim, glm::vec2 screenSize
     // screen and aim
     _material->SetFloat2("ScreenSize", screenSize);
     _material->SetFloat2("AimOffset", aim);
+
+
+    // flight mode brackets
+    const float stableTarget = ship.FlightAssist ? 1.0f : 0.0f;
+    const float stableStep = deltaTime / glm::max(hud.BracketMorphTime, 1e-4f);
+    _stableBlend += glm::clamp(stableTarget - _stableBlend, -stableStep, stableStep);
+    const float stableEase = glm::smoothstep(0.0f, 1.0f, _stableBlend);
+    _material->SetFloat1("BracketOffset", glm::mix(hud.BracketOffset, hud.BracketStableOffset, stableEase));
+    _material->SetFloat1("BracketArm", glm::mix(hud.BracketArm, hud.BracketStableOffset, stableEase));
 
 
     // horizon

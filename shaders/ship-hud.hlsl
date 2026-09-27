@@ -120,8 +120,8 @@ PixelOutput PS(FullscreenVSOutput input) {
 
 
     // boresight brackets
-    float bracketOffset = _Main.BracketOffset;
-    float bracketInner = bracketOffset - _Main.BracketArm;
+    float bracketOffset = round(_Main.BracketOffset);
+    float bracketInner = bracketOffset - round(_Main.BracketArm);
     float bracketOuter = bracketOffset + lineHalf;
     bool horizontalArm = abs(absP.y - bracketOffset) <= lineReach && absP.x <= bracketOuter && absP.x >= bracketInner;
     bool verticalArm = abs(absP.x - bracketOffset) <= lineReach && absP.y <= bracketOuter && absP.y >= bracketInner;

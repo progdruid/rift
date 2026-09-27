@@ -174,6 +174,8 @@ struct RiftSettings {
         float PipHalf = 0.0f;
         float BracketOffset = 6.0f;
         float BracketArm = 3.0f;
+        float BracketStableOffset = 4.0f;
+        float BracketMorphTime = 0.2f;
         float AimBoxHalf = 1.0f;
         float DashPeriod = 2.0f;
 
