@@ -16,6 +16,7 @@
 #include "DeliverySystem.h"
 #include "MetaSystem.h"
 #include "OxygenSystem.h"
+#include "ShipHud.h"
 #include "StationUI.h"
 #include "PauseOverlay.h"
 #include "RiftSettings.h"
@@ -52,7 +53,6 @@ void RiftScene::Prepare() {
 
     _shipCameraController = std::make_unique<ShipCameraController>(_camera.get(), _terrain.get());
     _oxygen = std::make_unique<OxygenSystem>(*_terrain);
-    _hudMaterial->SetFloat1("AimRadius", RiftStore::Get().Ship.AimRadius);
 }
 
 auto RiftScene::EnterPlayMode() -> void {
@@ -77,7 +77,6 @@ auto RiftScene::ExitPlayMode() -> void {
     _overlays.Clear();
     _delivery.reset();
     _meta.End();
-    _hudMaterial->SetFloat1("TargetState", 0.0f);
 }
 
 auto RiftScene::DeathSequence() -> BeCoroutine {
@@ -235,14 +234,8 @@ auto RiftScene::DefinePasses() -> void {
     _posterizeMaterial->SetFloat1("Enabled", posterize.Enabled ? 1.0f : 0.0f);
     _posterizeMaterial->SetTexture("UITexture", _machine->GetRenderTexture("Rift_UI"));
 
-    const uint32_t screenWidth  = _game->Renderer->GetSwapchainPixelWidth();
-    const uint32_t screenHeight = _game->Renderer->GetSwapchainPixelHeight();
-    const auto& hudShader = *BeShaderLibrary::GetShader("ship-hud");
-    const auto& hudScheme = BeShaderLibrary::GetShaderScheme(hudShader, "main");
-    _hudMaterial = BeMaterial::Create(hudScheme);
-    _hudMaterial->SetFloat2("ScreenSize", { static_cast<float>(screenWidth), static_cast<float>(screenHeight) });
-    _hudMaterial->SetFloat1("PixelSize", posterize.PixelSize);
-    _machine->AddFullscreenPass(BeShaderLibrary::GetShader("ship-hud"), _hudMaterial, { "Rift_UI" });
+    _hud = std::make_unique<ShipHud>();
+    _machine->AddFullscreenPass(BeShaderLibrary::GetShader("ship-hud"), _hud->GetMaterial(), { "Rift_UI" });
 
     _machine->AddFullscreenPass(BeShaderLibrary::GetShader("posterize"), _posterizeMaterial, { "Rift_Post" });
 
@@ -322,21 +315,6 @@ void RiftScene::Tick(float deltaTime) {
     _game->Input->SetMouseCapture(!_overlays.ReleasesCursor());
 
     _shipCameraController->Update(frozen ? 0.0f : deltaTime, _game->Input.get());
-    _hudMaterial->SetFloat2("AimOffset", _shipCameraController->GetAim());
-
-    const glm::vec3 worldUp = { 0.0f, 1.0f, 0.0f };
-    const glm::vec2 upScreen = { glm::dot(worldUp, _camera->GetRight()), glm::dot(worldUp, _camera->GetUp()) };
-    glm::vec2 horizonDir = { upScreen.y, -upScreen.x };
-    const float horizonLen = glm::length(horizonDir);
-    horizonDir = horizonLen > 1e-3f ? horizonDir / horizonLen : glm::vec2(1.0f, 0.0f);
-    _hudMaterial->SetFloat2("HorizonDir", { horizonDir.x, -horizonDir.y });
-
-    // wing ticks fade out near vertical, sliding inward when looking down and outward when looking up
-    const auto& ship = RiftStore::Get().Ship;
-    const float pitch = glm::degrees(std::asin(glm::clamp(_camera->GetFront().y, -1.0f, 1.0f)));
-    const float wingFade = glm::smoothstep(ship.WingTickFadeStartPitch, ship.WingTickFadeEndPitch, std::abs(pitch));
-    _hudMaterial->SetFloat1("WingTickAlpha", 1.0f - wingFade);
-    _hudMaterial->SetFloat1("WingTickOffset", (pitch >= 0.0f ? 1.0f : -1.0f) * wingFade * ship.WingTickSlide);
 
     const bool inOxygenZone = _delivery && _delivery->IsInOxygenZone(_camera->Position);
     _oxygen->Update(frozen ? 0.0f : deltaTime, _camera->Position, _shipCameraController->IsCaptured(), inOxygenZone);
@@ -366,42 +344,11 @@ void RiftScene::Tick(float deltaTime) {
         }
     }
 
-    const float screenW = static_cast<float>(_game->Renderer->GetSwapchainPixelWidth());
-    const float screenH = static_cast<float>(_game->Renderer->GetSwapchainPixelHeight());
-    _hudMaterial->SetFloat2("ScreenSize", { screenW, screenH });
-    const auto& marker = RiftStore::Get().Delivery.Marker;
-    float targetState = 0.0f;
-    glm::vec2 targetPixel = { screenW * 0.5f, screenH * 0.5f };
-    glm::vec2 targetDir = { 0.0f, 1.0f };
-    float targetRadius = marker.MinRadius;
-    float targetAlpha = 1.0f;
-    if (_delivery && _delivery->HasContract() && !_delivery->CanComplete()) {
-        const glm::vec3 targetWorld = _delivery->GetTargetPosition(_camera->Position);
-        const glm::vec4 clip = _camera->GetProjectionMatrix() * _camera->GetViewMatrix()
-            * glm::vec4(targetWorld, 1.0f);
-        const bool behind = clip.w <= 1e-4f;
-        glm::vec2 ndc = glm::vec2(clip.x, clip.y) / clip.w;
-        if (behind) ndc = -ndc;
-        const bool onScreen = !behind && std::abs(ndc.x) <= 1.0f && std::abs(ndc.y) <= 1.0f;
-        if (onScreen) {
-            targetState = 1.0f;
-            targetPixel = { (ndc.x * 0.5f + 0.5f) * screenW, (0.5f - ndc.y * 0.5f) * screenH };
-            const float distance = glm::length(targetWorld - _camera->Position);
-            targetRadius = glm::mix(marker.MinRadius, marker.MaxRadius, glm::smoothstep(marker.SizeFar, marker.SizeNear, distance));
-            targetAlpha = glm::smoothstep(marker.FadeNear, marker.FadeFar, distance);
-        } else {
-            targetState = 2.0f;
-            const float extent = std::max(std::max(std::abs(ndc.x), std::abs(ndc.y)), 1e-4f);
-            const glm::vec2 marked = (ndc / extent) * marker.ScreenMargin;
-            targetPixel = { (marked.x * 0.5f + 0.5f) * screenW, (0.5f - marked.y * 0.5f) * screenH };
-            targetDir = glm::normalize(glm::vec2(ndc.x, -ndc.y));
-        }
-    }
-    _hudMaterial->SetFloat2("TargetPos", targetPixel);
-    _hudMaterial->SetFloat2("TargetDir", targetDir);
-    _hudMaterial->SetFloat1("TargetState", targetState);
-    _hudMaterial->SetFloat1("TargetRingRadius", targetRadius);
-    _hudMaterial->SetFloat1("TargetAlpha", targetAlpha);
+    const glm::vec2 screenSize = {
+        static_cast<float>(_game->Renderer->GetSwapchainPixelWidth()),
+        static_cast<float>(_game->Renderer->GetSwapchainPixelHeight())
+    };
+    _hud->Update(*_camera, _shipCameraController->GetAim(), screenSize, _delivery.get());
 
     const float tileSize = RiftStore::Get().Terrain.GetRenderTileWorldSize();
     const int centerX = static_cast<int>(std::round(_camera->Position.x / tileSize));

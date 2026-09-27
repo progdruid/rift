@@ -120,9 +120,6 @@ struct RiftSettings {
         float MouseSensitivity = 1.0f;
         float AimRadius = 150.0f;
         float AimDeadZone = 0.06f;
-        float WingTickFadeStartPitch = 78.0f;
-        float WingTickFadeEndPitch = 88.0f;
-        float WingTickSlide = 24.0f;
         float MouseReturn = 0.0f;
         float RotationResponse = 6.0f;
         float RollAccel = 2.0f;
@@ -168,6 +165,35 @@ struct RiftSettings {
         float VignetteSoftness = 0.5f;
         glm::vec3 VignetteColor = HexColor("#1F2C47");
     } Oxygen;
+
+    struct HudSettings {
+        bool Enabled = true;
+        glm::vec3 Color = glm::vec3(0.93f, 0.91f, 0.84f);
+
+        float LineHalf = 0.0f;
+        float PipHalf = 0.0f;
+        float BracketOffset = 6.0f;
+        float BracketArm = 3.0f;
+        float AimBoxHalf = 1.0f;
+        float DashPeriod = 2.0f;
+
+        float WingTickLength = 3.0f;
+        float GroundTickLength = 2.0f;
+        float WingTickFadeStartPitch = 78.0f;
+        float WingTickFadeEndPitch = 88.0f;
+        float WingTickSlide = 24.0f;
+
+        struct MarkerSettings {
+            float ArrowSize = 4.0f;
+            float ScreenMargin = 0.88f;
+            float MinRadius = 1.5f;
+            float MaxRadius = 10.0f;
+            float SizeFar = 800.0f;
+            float SizeNear = 120.0f;
+            float FadeNear = 80.0f;
+            float FadeFar = 200.0f;
+        } Marker;
+    } Hud;
 
     struct DeliverySettings {
         std::vector<StationKind> Kinds = {
@@ -277,16 +303,6 @@ struct RiftSettings {
         float PriceDeviation = 0.28f;
         int MarketMinCommodities = 2;
         int MarketMaxCommodities = 5;
-
-        struct MarkerSettings {
-            float ScreenMargin = 0.88f;
-            float MinRadius = 1.5f;
-            float MaxRadius = 10.0f;
-            float SizeFar = 800.0f;
-            float SizeNear = 120.0f;
-            float FadeNear = 80.0f;
-            float FadeFar = 200.0f;
-        } Marker;
     } Delivery;
 
     struct DebtSettings {
