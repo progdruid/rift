@@ -25,7 +25,8 @@ auto PauseOverlay::Draw() -> bool {
     bool keepOpen = true;
 
     ImGui::SeparatorText("Settings");
-    ImGui::Dummy(ImVec2(0.0f, 48.0f));
+    auto& ship = RiftStore::Get().Ship;
+    ImGui::SliderFloat("Aim sensitivity", &ship.MouseSensitivity, 0.1f, 3.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
 
     ImGui::SeparatorText("Controls");
     ImGui::TextUnformatted(kControlsHelp);

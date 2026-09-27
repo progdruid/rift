@@ -13,12 +13,8 @@
     Enabled: float = 1.0
     PaletteCount: float = 7.0
     Palette: float3[8] = []
-    SonarPingCenter: float3 = (0, 0, 0)
-    SonarPingRadius: float = 0.0
-    SonarPingActive: float = 0.0
-    SonarEchoCenter: float3 = (0, 0, 0)
-    SonarEchoRadius: float = 0.0
-    SonarEchoActive: float = 0.0
+    SonarWaves: float4[16] = []
+    SonarWaveCount: float = 0.0
     SonarTrailLength: float = 12.0
     SonarColor: float3 = #FFFFFF
 }
@@ -54,12 +50,8 @@ struct posterize_material {
     float Enabled;
     float PaletteCount;
     float3 Palette[8];
-    float3 SonarPingCenter;
-    float SonarPingRadius;
-    float SonarPingActive;
-    float3 SonarEchoCenter;
-    float SonarEchoRadius;
-    float SonarEchoActive;
+    float4 SonarWaves[16];
+    float SonarWaveCount;
     float SonarTrailLength;
     float3 SonarColor;
 };
@@ -118,8 +110,11 @@ PixelOutput PS(FullscreenVSOutput input) {
 
     if (dist < _Main.FogEnd) {
         float sonar = 0.0;
-        if (_Main.SonarPingActive > 0.5) sonar = max(sonar, SonarBand(worldPos, _Main.SonarPingCenter, _Main.SonarPingRadius, _Main.SonarTrailLength));
-        if (_Main.SonarEchoActive > 0.5) sonar = max(sonar, SonarBand(worldPos, _Main.SonarEchoCenter, _Main.SonarEchoRadius, _Main.SonarTrailLength));
+        int waveCount = int(_Main.SonarWaveCount);
+        for (int i = 0; i < waveCount; i++) {
+            float4 wave = _Main.SonarWaves[i];
+            sonar = max(sonar, SonarBand(worldPos, wave.xyz, wave.w, _Main.SonarTrailLength));
+        }
         color = lerp(color, _Main.SonarColor, sonar);
     }
 
