@@ -6,6 +6,7 @@
 #include <numeric>
 
 #include "BeAssetRegistry.h"
+#include "BeProp.h"
 #include "standard-game/Components.h"
 #include "RiftSettings.h"
 #include "RiftTerrain.h"

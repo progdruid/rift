@@ -15,6 +15,7 @@
 #include "ShipCameraController.h"
 #include "DeliverySystem.h"
 #include "MetaSystem.h"
+#include "OxygenSystem.h"
 #include "StationUI.h"
 #include "PauseOverlay.h"
 #include "RiftSettings.h"
@@ -50,6 +51,7 @@ void RiftScene::Prepare() {
     _camera->Position = glm::vec3(0.0f, RiftStore::Get().Camera.SpawnHeight, 0.0f);
 
     _shipCameraController = std::make_unique<ShipCameraController>(_camera.get(), _terrain.get());
+    _oxygen = std::make_unique<OxygenSystem>(*_terrain);
     _hudMaterial->SetFloat1("AimRadius", RiftStore::Get().Ship.AimRadius);
 }
 
@@ -72,7 +74,6 @@ auto RiftScene::ExitPlayMode() -> void {
     const auto docks = _registry.view<DockComponent>();
     _registry.destroy(docks.begin(), docks.end());
     _shipCameraController->Uncapture();
-    _shipCameraController->SetInOxygenZone(false);
     _overlays.Clear();
     _delivery.reset();
     _meta.End();
@@ -85,22 +86,23 @@ auto RiftScene::DeathSequence() -> BeCoroutine {
 
     const float fadeOutStart = _time;
     while (_time - fadeOutStart < ship.DeathFadeOutTime) {
-        _posterizeMaterial->SetFloat1("Fade", (_time - fadeOutStart) / ship.DeathFadeOutTime);
+        _fadeMaterial->SetFloat1("Fade", (_time - fadeOutStart) / ship.DeathFadeOutTime);
         co_yield 0.0f;
     }
-    _posterizeMaterial->SetFloat1("Fade", 1.0f);
+    _fadeMaterial->SetFloat1("Fade", 1.0f);
 
     _delivery->ApplyCrashPenalty();
     _shipCameraController->Respawn(_delivery->GetRespawnDock(_camera->Position));
+    _oxygen->Reset();
 
     co_yield ship.DeathHoldTime;
 
     const float fadeInStart = _time;
     while (_time - fadeInStart < ship.DeathFadeInTime) {
-        _posterizeMaterial->SetFloat1("Fade", 1.0f - (_time - fadeInStart) / ship.DeathFadeInTime);
+        _fadeMaterial->SetFloat1("Fade", 1.0f - (_time - fadeInStart) / ship.DeathFadeInTime);
         co_yield 0.0f;
     }
-    _posterizeMaterial->SetFloat1("Fade", 0.0f);
+    _fadeMaterial->SetFloat1("Fade", 0.0f);
 
     _dying = false;
 }
@@ -167,6 +169,8 @@ auto RiftScene::DefineAssets() -> void {
     _machine->DeclareDepthTarget  ("Rift_Depth",             SenFormat::Depth32);
     _machine->DeclareTextureTarget("Rift_HDR",               SenFormat::R11G11B10_Float);
     _machine->DeclareTextureTarget("Rift_Post",              SenFormat::R11G11B10_Float);
+    _machine->DeclareTextureTarget("Rift_Vignette",          SenFormat::R11G11B10_Float);
+    _machine->DeclareTextureTarget("Rift_Final",             SenFormat::R11G11B10_Float);
     _machine->DeclareTextureTarget("Rift_UI",                SenFormat::RGBA8_Unorm);
 }
 
@@ -242,7 +246,20 @@ auto RiftScene::DefinePasses() -> void {
 
     _machine->AddFullscreenPass(BeShaderLibrary::GetShader("posterize"), _posterizeMaterial, { "Rift_Post" });
 
-    _machine->AddBackbufferPass("Rift_Post");
+    const auto& vignetteShader = *BeShaderLibrary::GetShader("vignette");
+    const auto& vignetteScheme = BeShaderLibrary::GetShaderScheme(vignetteShader, "main");
+    _vignetteMaterial = BeMaterial::Create(vignetteScheme);
+    _vignetteMaterial->SetTexture("ColorTexture", _machine->GetRenderTexture("Rift_Post"));
+    _vignetteMaterial->SetFloat1("PixelSize", posterize.PixelSize);
+    _machine->AddFullscreenPass(BeShaderLibrary::GetShader("vignette"), _vignetteMaterial, { "Rift_Vignette" });
+
+    const auto& fadeShader = *BeShaderLibrary::GetShader("fade");
+    const auto& fadeScheme = BeShaderLibrary::GetShaderScheme(fadeShader, "main");
+    _fadeMaterial = BeMaterial::Create(fadeScheme);
+    _fadeMaterial->SetTexture("ColorTexture", _machine->GetRenderTexture("Rift_Vignette"));
+    _machine->AddFullscreenPass(BeShaderLibrary::GetShader("fade"), _fadeMaterial, { "Rift_Final" });
+
+    _machine->AddBackbufferPass("Rift_Final");
 
     auto imguiPass = std::make_unique<BeImGuiPass>(_game->Window);
     imguiPass->SetUICallback([this]() {
@@ -320,23 +337,14 @@ void RiftScene::Tick(float deltaTime) {
     const float wingFade = glm::smoothstep(ship.WingTickFadeStartPitch, ship.WingTickFadeEndPitch, std::abs(pitch));
     _hudMaterial->SetFloat1("WingTickAlpha", 1.0f - wingFade);
     _hudMaterial->SetFloat1("WingTickOffset", (pitch >= 0.0f ? 1.0f : -1.0f) * wingFade * ship.WingTickSlide);
-    // oxygen bar fades in once the tank starts draining, fades out after it refills
-    const float oxygen = _shipCameraController->GetOxygen();
-    const float oxygenBarTarget = ship.OxygenBarEnabled && oxygen < 1.0f ? 1.0f : 0.0f;
-    const float oxygenBarStep = deltaTime / glm::max(ship.OxygenBarFadeTime, 1e-4f);
-    _oxygenBarAlpha += glm::clamp(oxygenBarTarget - _oxygenBarAlpha, -oxygenBarStep, oxygenBarStep);
-    _hudMaterial->SetFloat1("OxygenLevel", oxygen);
-    _hudMaterial->SetFloat1("OxygenBarAlpha", _oxygenBarAlpha);
 
-    // vignette closes in as the tank runs low; at empty the radius is -softness so even the center is fully covered
-    const float suffocation = 1.0f - glm::clamp(oxygen / glm::max(ship.OxygenVignetteStart, 1e-4f), 0.0f, 1.0f);
-    _posterizeMaterial->SetFloat1("VignetteRadius", glm::mix(ship.OxygenVignetteMaxRadius, -ship.OxygenVignetteSoftness, suffocation));
-    _posterizeMaterial->SetFloat1("VignetteSoftness", ship.OxygenVignetteSoftness);
-    _posterizeMaterial->SetFloat3("VignetteColor", ship.OxygenVignetteColor);
+    const bool inOxygenZone = _delivery && _delivery->IsInOxygenZone(_camera->Position);
+    _oxygen->Update(frozen ? 0.0f : deltaTime, _camera->Position, _shipCameraController->IsCaptured(), inOxygenZone);
+    _oxygen->ApplyVignette(*_vignetteMaterial);
 
     if (_delivery && !_dying) {
-        if (_shipCameraController->GetLastImpactSpeed() > RiftStore::Get().Ship.CrashImpactSpeed || 
-            !_shipCameraController->HasOxygen()) {
+        if (_shipCameraController->GetLastImpactSpeed() > RiftStore::Get().Ship.CrashImpactSpeed ||
+            _oxygen->IsDepleted()) {
             _coroutineScheduler.Start(DeathSequence());
         }
     }
@@ -344,7 +352,6 @@ void RiftScene::Tick(float deltaTime) {
     if (_delivery && !_dying) {
         const auto dock = _delivery->CheckDock(_camera->Position);
         _shipCameraController->SetInDock(dock.Hit);
-        _shipCameraController->SetInOxygenZone(_delivery->IsInOxygenZone(_camera->Position));
 
         if (_shipCameraController->HasJustEnteredDock()) {
             _shipCameraController->Capture(dock.Anchor);

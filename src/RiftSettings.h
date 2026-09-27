@@ -143,17 +143,6 @@ struct RiftSettings {
         float GroundEffectSpeedHigh = 0.6f;
         float GroundEffectDragHigh = 1.0f;
         float GroundEffectResponse = 2.0f;
-        
-        float OxygenLossAltitude = 50.f;
-        float OxygenLossSpeed = 0.15f;
-        float OxygenRecoverSpeed = 0.10f;
-        float OxygenDockedRecoverSpeed = 0.4f;
-        bool OxygenBarEnabled = false;
-        float OxygenBarFadeTime = 0.4f;
-        float OxygenVignetteStart = 1.0f;       // oxygen level where the vignette begins closing in
-        float OxygenVignetteMaxRadius = 1.2f;   // radius at OxygenVignetteStart (off-screen), in screen half-widths
-        float OxygenVignetteSoftness = 0.5f;
-        glm::vec3 OxygenVignetteColor = HexColor("#1F2C47");
 
         float CollisionRadius = 1.7f;
         float GroundFriction = 3.0f;
@@ -165,6 +154,20 @@ struct RiftSettings {
         float DockSpringFrequency = 8.0f;
         float DockDampingRatio = 0.3f;
     } Ship;
+
+    struct OxygenSettings {
+        bool Enabled = true;
+
+        float LossAltitude = 50.f;
+        float LossSpeed = 0.15f;
+        float RecoverSpeed = 0.10f;
+        float DockedRecoverSpeed = 0.4f;
+
+        float VignetteStart = 1.0f;
+        float VignetteMaxRadius = 1.2f;
+        float VignetteSoftness = 0.5f;
+        glm::vec3 VignetteColor = HexColor("#1F2C47");
+    } Oxygen;
 
     struct DeliverySettings {
         std::vector<StationKind> Kinds = {

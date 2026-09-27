@@ -11,10 +11,6 @@
     FogEnd: float = 45.0
     FogColor: float3 = #334D80
     Enabled: float = 1.0
-    Fade: float = 0.0
-    VignetteRadius: float = 2.0
-    VignetteSoftness: float = 0.4
-    VignetteColor: float3 = #1F2C47
     PaletteCount: float = 7.0
     Palette: float3[8] = []
 }
@@ -48,10 +44,6 @@ struct posterize_material {
     float FogEnd;
     float3 FogColor;
     float Enabled;
-    float Fade;
-    float VignetteRadius;
-    float VignetteSoftness;
-    float3 VignetteColor;
     float PaletteCount;
     float3 Palette[8];
 };
@@ -82,34 +74,22 @@ struct PixelOutput {
 
 #include "core/fullscreen-vertex.hlsl"
 #include "core/BeFunctions.hlsli"
-
-static const float BAYER8[64] = {
-     0, 32,  8, 40,  2, 34, 10, 42,
-    48, 16, 56, 24, 50, 18, 58, 26,
-    12, 44,  4, 36, 14, 46,  6, 38,
-    60, 28, 52, 20, 62, 30, 54, 22,
-     3, 35, 11, 43,  1, 33,  9, 41,
-    51, 19, 59, 27, 49, 17, 57, 25,
-    15, 47,  7, 39, 13, 45,  5, 37,
-    63, 31, 55, 23, 61, 29, 53, 21
-};
+#include "dither.hlsli"
 
 PixelOutput PS(FullscreenVSOutput input) {
     if (_Main.Enabled < 0.5) {
         float3 scene = ColorTexture.SampleLevel(PointSampler, input.UV, 0).rgb;
         float4 ui = UITexture.SampleLevel(PointSampler, input.UV, 0);
         PixelOutput passthrough;
-        passthrough.PosterizeOutput = lerp(scene, ui.rgb, saturate(ui.a)) * (1.0 - _Main.Fade);
+        passthrough.PosterizeOutput = lerp(scene, ui.rgb, saturate(ui.a));
         return passthrough;
     }
 
     uint w, h;
     ColorTexture.GetDimensions(w, h);
 
-    float2 texel = 1.0 / float2(w, h);
-    float2 blockUV = _Main.PixelSize * texel;
-    float2 blockOrigin = floor(input.UV / blockUV) * blockUV;
-    float2 snappedUV = blockOrigin + blockUV * 0.5;
+    DitherBlock block = GetDitherBlock(input.UV, _Main.PixelSize, float2(w, h));
+    float2 snappedUV = block.SnappedUV;
 
     float3 color = saturate(ColorTexture.SampleLevel(PointSampler, snappedUV, 0).rgb);
 
@@ -118,9 +98,6 @@ PixelOutput PS(FullscreenVSOutput input) {
     float dist = length(worldPos - _Frame.CameraPosition);
     float fog = saturate((dist - _Main.FogStart) / (_Main.FogEnd - _Main.FogStart));
     color = lerp(color, _Main.FogColor, fog);
-
-    int2 blockIndex = int2(floor(input.UV / blockUV));
-    float threshold = (BAYER8[(blockIndex.y & 7) * 8 + (blockIndex.x & 7)] + 0.5) / 64.0;
 
     int paletteCount = int(_Main.PaletteCount);
     float3 best = _Main.Palette[0];
@@ -150,16 +127,10 @@ PixelOutput PS(FullscreenVSOutput input) {
     float strength = saturate(_Main.DitherSpread);
     float dithered = saturate(0.5 + (t - 0.5) / max(strength, 1e-4));
 
-    float3 sceneOut = (threshold < dithered) ? second : best;
-
-    // dithered vignette: per-block coverage ramps from 0 at VignetteRadius to 1 at VignetteRadius + VignetteSoftness
-    // radius measured in half-widths (screen side edge = 1.0), so the shape stays circular
-    float2 vp = (snappedUV - 0.5) * 2.0 * float2(1.0, float(h) / float(w));
-    float vignette = saturate((length(vp) - _Main.VignetteRadius) / max(_Main.VignetteSoftness, 1e-4));
-    if (threshold < vignette) sceneOut = _Main.VignetteColor;
+    float3 sceneOut = (block.Threshold < dithered) ? second : best;
 
     float4 ui = UITexture.SampleLevel(PointSampler, input.UV, 0);
     PixelOutput output;
-    output.PosterizeOutput = lerp(sceneOut, ui.rgb, saturate(ui.a)) * (1.0 - _Main.Fade);
+    output.PosterizeOutput = lerp(sceneOut, ui.rgb, saturate(ui.a));
     return output;
 }
