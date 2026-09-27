@@ -16,8 +16,9 @@ class ShipHud {
 
     expose
     ShipHud();
-
-    auto Update(float deltaTime, const BeCamera& camera, glm::vec2 aim, glm::vec2 screenSize, const DeliverySystem* delivery) -> void;
-
+    auto Update(
+        float deltaTime, const BeCamera& camera, glm::vec2 aim, 
+        glm::vec2 screenSize, const DeliverySystem* delivery
+    ) -> void;
     [[nodiscard]] auto GetMaterial() const -> const std::shared_ptr<BeMaterial>& { return _material; }
 };

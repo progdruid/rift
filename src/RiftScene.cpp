@@ -16,6 +16,7 @@
 #include "DeliverySystem.h"
 #include "MetaSystem.h"
 #include "OxygenSystem.h"
+#include "SonarSystem.h"
 #include "ShipHud.h"
 #include "StationUI.h"
 #include "PauseOverlay.h"
@@ -53,6 +54,7 @@ void RiftScene::Prepare() {
 
     _shipCameraController = std::make_unique<ShipCameraController>(_camera.get(), _terrain.get());
     _oxygen = std::make_unique<OxygenSystem>(*_terrain);
+    _sonar = std::make_unique<SonarSystem>();
 }
 
 auto RiftScene::EnterPlayMode() -> void {
@@ -76,6 +78,7 @@ auto RiftScene::ExitPlayMode() -> void {
     _shipCameraController->Uncapture();
     _overlays.Clear();
     _delivery.reset();
+    _sonar->Reset();
     _meta.End();
 }
 
@@ -93,6 +96,7 @@ auto RiftScene::DeathSequence() -> BeCoroutine {
     _delivery->ApplyCrashPenalty();
     _shipCameraController->Respawn(_delivery->GetRespawnDock(_camera->Position));
     _oxygen->Reset();
+    _sonar->Reset();
 
     co_yield ship.DeathHoldTime;
 
@@ -286,7 +290,7 @@ void RiftScene::Tick(float deltaTime) {
         _posterizeMaterial->SetFloat1("Enabled", enabled ? 1.0f : 0.0f);
     }
 
-    if (_game->Input->GetKeyDown(GLFW_KEY_P) && !_dying) {
+    if (_game->Input->GetKeyDown(GLFW_KEY_G) && !_dying) {
         if (_delivery) ExitPlayMode();
         else EnterPlayMode();
     }
@@ -319,6 +323,16 @@ void RiftScene::Tick(float deltaTime) {
     const bool inOxygenZone = _delivery && _delivery->IsInOxygenZone(_camera->Position);
     _oxygen->Update(frozen ? 0.0f : deltaTime, _camera->Position, _shipCameraController->IsCaptured(), inOxygenZone);
     _oxygen->ApplyVignette(*_vignetteMaterial);
+
+    if (_game->Input->GetKeyDown(GLFW_KEY_P) && !_overlays.BlocksControls() && !_dying && !_shipCameraController->IsCaptured()) {
+        std::optional<glm::vec3> target;
+        if (_delivery && _delivery->HasContract()) {
+            target = _delivery->GetTargetPosition(_camera->Position);
+        }
+        _sonar->TryPing(_camera->Position, target);
+    }
+    _sonar->Update(frozen ? 0.0f : deltaTime, _camera->Position);
+    _sonar->Apply(*_posterizeMaterial);
 
     if (_delivery && !_dying) {
         if (_shipCameraController->GetLastImpactSpeed() > RiftStore::Get().Ship.CrashImpactSpeed ||

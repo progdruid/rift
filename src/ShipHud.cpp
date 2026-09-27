@@ -73,15 +73,17 @@ auto ShipHud::Update(float deltaTime, const BeCamera& camera, glm::vec2 aim, glm
     float targetAlpha = 1.0f;
     if (delivery && delivery->HasContract() && !delivery->CanComplete()) {
         const glm::vec3 targetWorld = delivery->GetTargetPosition(camera.Position);
+        const float distance = glm::length(targetWorld - camera.Position);
         const glm::vec4 clip = camera.GetProjectionMatrix() * camera.GetViewMatrix() * glm::vec4(targetWorld, 1.0f);
         const bool behind = clip.w <= 1e-4f;
         glm::vec2 ndc = glm::vec2(clip.x, clip.y) / clip.w;
         if (behind) ndc = -ndc;
         const bool onScreen = !behind && std::abs(ndc.x) <= 1.0f && std::abs(ndc.y) <= 1.0f;
-        if (onScreen) {
+        if (distance > marker.SizeFar) {
+            targetState = 0.0f;
+        } else if (onScreen) {
             targetState = 1.0f;
             targetPixel = { (ndc.x * 0.5f + 0.5f) * screenSize.x, (0.5f - ndc.y * 0.5f) * screenSize.y };
-            const float distance = glm::length(targetWorld - camera.Position);
             targetRadius = glm::mix(marker.MinRadius, marker.MaxRadius, glm::smoothstep(marker.SizeFar, marker.SizeNear, distance));
             targetAlpha = glm::smoothstep(marker.FadeNear, marker.FadeFar, distance);
         } else {

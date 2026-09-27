@@ -30,7 +30,6 @@ class ShipCameraController {
     auto Respawn(glm::vec3 position) -> void;
     auto GetAim() const -> glm::vec2 { return _aim; }
     auto GetLastImpactSpeed() const -> float { return _lastImpactSpeed; }
-
     auto SetInDock(bool inDock) -> void { _wasInDockLast = _isInDock; _isInDock = inDock; }
     auto HasJustEnteredDock() const -> bool { return _isInDock && !_wasInDockLast; }
 

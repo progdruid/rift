@@ -12,6 +12,7 @@
 class ShipCameraController;
 class DeliverySystem;
 class OxygenSystem;
+class SonarSystem;
 class ShipHud;
 class RiftTerrain;
 class BeMaterial;
@@ -24,6 +25,7 @@ class RiftScene : public BeStandardFullScene {
     std::unique_ptr<ShipCameraController> _shipCameraController;
     std::unique_ptr<DeliverySystem> _delivery;
     std::unique_ptr<OxygenSystem> _oxygen;
+    std::unique_ptr<SonarSystem> _sonar;
     std::unique_ptr<ShipHud> _hud;
     std::array<entt::entity, 9> _terrainTiles;
     std::shared_ptr<BeMaterial> _posterizeMaterial;

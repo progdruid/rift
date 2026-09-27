@@ -16,6 +16,7 @@ inline constexpr const char* kControlsHelp =
     "A / D    roll\n"
     "Shift    boost\n"
     "Space    flight assist\n"
+    "P        sonar ping\n"
     "C        undock";
 
 struct FloatRange {
@@ -166,6 +167,15 @@ struct RiftSettings {
         glm::vec3 VignetteColor = HexColor("#1F2C47");
     } Oxygen;
 
+    struct SonarSettings {
+        float PingSpeed = 120.0f;
+        float EchoSpeed = 120.0f;
+        float EchoDelayPerMeter = 0.0015f;
+        float TrailLength = 12.0f;
+        float EndMargin = 20.0f;
+        glm::vec3 Color = HexColor("#FFFFFF");
+    } Sonar;
+
     struct HudSettings {
         bool Enabled = true;
         glm::vec3 Color = glm::vec3(0.93f, 0.91f, 0.84f);
@@ -190,8 +200,8 @@ struct RiftSettings {
             float ScreenMargin = 0.88f;
             float MinRadius = 1.5f;
             float MaxRadius = 10.0f;
-            float SizeFar = 800.0f;
             float SizeNear = 120.0f;
+            float SizeFar = 800.0f;
             float FadeNear = 80.0f;
             float FadeFar = 200.0f;
         } Marker;
