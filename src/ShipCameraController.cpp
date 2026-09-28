@@ -70,8 +70,9 @@ auto ShipCameraController::Update(float deltaTime, BeInput* input) -> void {
             if (input->GetKey(GLFW_KEY_E)) thrust += up;
         }
 
-        float accel = ship.ThrustAccel;
-        if (_controlsEnabled && input->GetKey(GLFW_KEY_LEFT_SHIFT)) accel *= ship.BoostMultiplier;
+        // stable mode is plain cruising: its own thrust, no boost
+        float accel = ship.FlightAssist ? ship.FlightAssistThrustAccel : ship.ThrustAccel;
+        if (_controlsEnabled && !ship.FlightAssist && input->GetKey(GLFW_KEY_LEFT_SHIFT)) accel *= ship.BoostMultiplier;
 
         if (glm::length(thrust) > 0.0001f)
             _velocity += glm::normalize(thrust) * accel * dt;
@@ -137,7 +138,7 @@ auto ShipCameraController::DrawDebugUI() -> void {
     ImGui::Text("Aim      : %+.2f %+.2f", _aim.x, _aim.y);
     ImGui::TextUnformatted("Mouse = yaw/pitch, A/D = roll.");
     ImGui::TextUnformatted("W/S = thrust, Q/E = up/down.");
-    ImGui::TextUnformatted("Shift = boost, Space = toggle flight assist.");
+    ImGui::TextUnformatted("Shift = boost (free flight), Space = toggle flight assist.");
     ImGui::TextUnformatted("C = undock from a station, S = toggle station menu.");
     ImGui::End();
 }

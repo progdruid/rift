@@ -14,7 +14,7 @@ inline constexpr const char* kControlsHelp =
     "W / S    thrust forward / back\n"
     "Q / E    descend / ascend\n"
     "A / D    roll\n"
-    "Shift    boost\n"
+    "Shift    boost (free flight)\n"
     "Space    flight assist\n"
     "P        sonar ping\n"
     "C        undock";
@@ -130,6 +130,7 @@ struct RiftSettings {
         float ThrustAccel = 40.0f;
         float BoostMultiplier = 3.0f;
         float MaxSpeed = 80.0f;
+        float FlightAssistThrustAccel = 60.0f;
         float FlightAssistDamping = 2.0f;
         float FullStopDamping = 6.0f;
         bool FlightAssist = true;
